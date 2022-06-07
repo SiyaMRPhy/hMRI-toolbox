@@ -854,7 +854,7 @@ if (mpm_params.QA.enable||(PDproc.calibr)) && (PDwidx && T1widx)
     % use unified segmentation with uniform defaults across the toobox:
     job_brainmask = hmri_get_defaults('segment');
     job_brainmask.channel.vols = {Vsave.fname};
-    job_brainmask.channel.write = [0 0]; % no need to write BiasField nor BiasCorrected image
+    job_brainmask.channel.write = [1 0]; % siya test %  no need to write BiasField nor BiasCorrected image % to chekc the segmenataion qulaity
     output_list = spm_preproc_run(job_brainmask);
     fTPM = char(cat(1,output_list.tiss.c));
 end
@@ -1091,7 +1091,7 @@ job_bfcorr.channel.biasreg = PDproc.biasreg;
 job_bfcorr.channel.biasfwhm = PDproc.biasfwhm;
 job_bfcorr.channel.write = [1 0]; % need the BiasField, obviously!
 for ctis=1:length(job_bfcorr.tissue)
-    job_bfcorr.tissue(ctis).native = [0 0]; % no need to write c* volumes
+    job_bfcorr.tissue(ctis).native = [1 0]; % no need to write c* volumes
 end
 output_list = spm_preproc_run(job_bfcorr);
 
