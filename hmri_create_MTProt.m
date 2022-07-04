@@ -837,26 +837,69 @@ end
 % if no MT map available. Therefore, we must at least have R1 available,
 % i.e. both PDw and T1w inputs...
 if (mpm_params.QA.enable||(PDproc.calibr)) && (PDwidx && T1widx)
-    if ~isempty(fMT); 
-        Vsave = spm_vol(fMT);
-    else % ~isempty(fR1); 
-        Vsave = spm_vol(fR1); 
-    end
-    MTtemp = spm_read_vols(Vsave);
-    % The 5 outer voxels in all directions are nulled in order to remove
-    % artefactual effects from the MT map on segmentation: 
-    MTtemp(1:5,:,:)=0; MTtemp(end-5:end,:,:)=0;
-    MTtemp(:,1:5,:)=0; MTtemp(:,end-5:end,:)=0;
-    MTtemp(:,:,1:5)=0; MTtemp(:,:,end-5:end)=0;
-    Vsave.fname = spm_file(Vsave.fname,'suffix','_outer_suppressed');
-    spm_write_vol(Vsave,MTtemp);
+% % %     if ~isempty(fMT); 
+% % %         Vsave = spm_vol(fMT);
+% % %     else % ~isempty(fR1); 
+% % %         Vsave = spm_vol(fR1); 
+% % %     end
+% % %     MTtemp = spm_read_vols(Vsave);
+% % %     % The 5 outer voxels in all directions are nulled in order to remove
+% % %     % artefactual effects from the MT map on segmentation: 
+% % %     MTtemp(1:5,:,:)=0; MTtemp(end-5:end,:,:)=0;
+% % %     MTtemp(:,1:5,:)=0; MTtemp(:,end-5:end,:)=0;
+% % %     MTtemp(:,:,1:5)=0; MTtemp(:,:,end-5:end)=0;
+% % %     Vsave.fname = spm_file(Vsave.fname,'suffix','_outer_suppressed');
+% % %     spm_write_vol(Vsave,MTtemp);
+% % %     
+% % %     % use unified segmentation with uniform defaults across the toobox:
+% % %     job_brainmask = hmri_get_defaults('segment');
+% % %     job_brainmask.channel.vols = {Vsave.fname};
+% % %     job_brainmask.channel.write = [1 0]; % siya test %  no need to write BiasField nor BiasCorrected image % to chekc the segmenataion qulaity
+% % %     output_list = spm_preproc_run(job_brainmask);
+% % %     fTPM = char(cat(1,output_list.tiss.c));
+
+% siya 
+% we need to get a good mask for computation of parameters. 
+% My idea is to use multi volume segment using T1w_TEzero and MTw_TEzero 
+% SNR should be higher for averaged Echos. 
+% Helms, G. and Dechent, P. (2009) ‘Increased SNR and reduced distortions by 
+% averaging multiple gradient echo signals in 3D FLASH imaging of the human 
+% brain at 3T’, Journal of magnetic resonance imaging: JMRI, 29(1), pp. 198–204.
+%
+% TEzero images have bias, high FWHM and smaple sampling region 
     
-    % use unified segmentation with uniform defaults across the toobox:
-    job_brainmask = hmri_get_defaults('segment');
-    job_brainmask.channel.vols = {Vsave.fname};
-    job_brainmask.channel.write = [1 0]; % siya test %  no need to write BiasField nor BiasCorrected image % to chekc the segmenataion qulaity
-    output_list = spm_preproc_run(job_brainmask);
-    fTPM = char(cat(1,output_list.tiss.c));
+    if ~exist(spm_select('FPList',jobsubj.path.segTEzero,'^c1.*nii'),'file')
+
+        % get the MTw_TEzero and T1w_TEzero 
+        MTw_TEzero_tmp  = spm_select('FPList',jobsubj.path.mpmpath,'_MTw_.*TEzero.nii');
+        T1w_TEzero_tmp   = spm_select('FPList',jobsubj.path.mpmpath,'_T1w_.*TEzero.nii');
+
+        % MTw in segTEzero folder
+        MTw_TEzero = spm_file(MTw_TEzero_tmp,'path',jobsubj.path.segTEzero);
+        if ~exist(MTw_TEzero)
+            spm_copy(MTw_TEzero_tmp,MTw_TEzero)
+        end
+
+        % T1w in segTEzero folder
+        T1w_TEzero = spm_file(T1w_TEzero_tmp,'path',jobsubj.path.segTEzero);
+        if ~exist(T1w_TEzero)
+            spm_copy(T1w_TEzero_tmp,T1w_TEzero)
+        end
+
+        job_brainmask = hmri_get_defaults('segment');
+        job_brainmask.channel(2) = job_brainmask.channel(1);
+
+        job_brainmask.channel(1).vols{1} = MTw_TEzero;
+        job_brainmask.channel(2).vols{1} = T1w_TEzero;
+
+        output_list = spm_preproc_run(job_brainmask);
+
+        fTPM = char(cat(1,output_list.tiss.c));
+        
+    else
+        fTPM = spm_select('FPList',jobsubj.path.segTEzero,'^c.*nii');
+    end
+    
 end
 
 % for quality assessment - the above segmentation must have run
@@ -1069,30 +1112,214 @@ threshA = mpm_params.proc.threshall.A;
 calcpath = mpm_params.calcpath;
 
 TPMs = spm_read_vols(spm_vol(fTPM));
-WBmask = zeros(size(squeeze(TPMs(:,:,:,1))));
-WBmask(sum(cat(4,TPMs(:,:,:,1:2),TPMs(:,:,:,end)),4)>=PDproc.WBMaskTh) = 1;
+WBmask = zeros(size(squeeze(TPMs(:,:,:,1)))); % WB whole brain mask
+% WBmask(sum(cat(4,TPMs(:,:,:,1:2),TPMs(:,:,:,end)),4)>=PDproc.WBMaskTh) =  1;  % maksing in not proper 
+WBmask(TPMs(:,:,:,1)+TPMs(:,:,:,2)+TPMs(:,:,:,3) >= PDproc.WBMaskTh) = 1 ;% siya % add the c1 c2 c3 and threshold 
+
 WMmask=zeros(size(squeeze(TPMs(:,:,:,1))));
 WMmask(squeeze(TPMs(:,:,:,2))>=PDproc.WMMaskTh) = 1;
 
 % Save masked A map for bias-field correction later
 V_maskedA = spm_vol(fA);
 V_maskedA.fname = fullfile(calcpath,['masked_' spm_str_manip(V_maskedA.fname,'t')]);
-maskedA = spm_read_vols(spm_vol(fA)).*WBmask;
+% % maskedA = spm_read_vols(spm_vol(fA)).*WBmask; test siya
+maskedA = spm_read_vols(spm_vol(fA)).*WBmask  + (~WBmask .* 1e-6) ;
 maskedA(maskedA==Inf) = 0;
 maskedA(isnan(maskedA)) = 0;
 maskedA(maskedA==threshA) = 0;
 spm_write_vol(V_maskedA,maskedA);
 
+% add small values in the zero vals (regions outside masked regions) % siya
+% SPM segemenataion expects a non-zero number for tissue values
+
+seg_inputPD = V_maskedA.fname;
+
+% % % % % % % seg_inputPD_modBG = spm_file(seg_inputPD,'suffix','_modifiedBG'); 
+% % % % % % % 
+% % % % % % % if ~exist(seg_inputPD_modBG)
+% % % % % % %     clear matlabbatch;
+% % % % % % %     tmp_nam = spm_str_manip(seg_inputPD_modBG,'t');
+% % % % % % %     
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.input = {seg_inputPD};
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.output = tmp_nam ;
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.outdir = {calcpath};
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.expression = 'i1.* ( double(i1>1e-7) ./ double(i1>1e-7) ) + ((~double(i1>1e-7)) .* 1e-6)';
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.var = struct('name', {}, 'value', {});
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.options.dmtx = 0;
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.options.mask = 0;
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.options.interp = 1;
+% % % % % % %     matlabbatch{1}.spm.util.imcalc.options.dtype = 16;
+% % % % % % % 
+% % % % % % %     batch_file = fullfile(spm_file(seg_inputPD,'path'),['batch_modify_backgroundVal.m']);
+% % % % % % % 
+% % % % % % %     [job_id, mod_job_idlist] = cfg_util('initjob',matlabbatch);
+% % % % % % %     cfg_util('savejob', job_id, batch_file);
+% % % % % % %     output_part = spm_jobman('run',matlabbatch);
+% % % % % % % 
+% % % % % % %     clear matlabbatch;
+% % % % % % % end
+
+
 % Bias-field correction of masked A map
 % use unified segmentation with uniform defaults across the toolbox:
-job_bfcorr = hmri_get_defaults('segment');
-job_bfcorr.channel.vols = {V_maskedA.fname};
+% % % % % job_bfcorr = hmri_get_defaults('segment');
+% % % % % job_bfcorr.channel.vols = {seg_inputPD_modBG}; % file with modified background
+% % % % % job_bfcorr.channel.biasreg = PDproc.biasreg;
+% % % % % job_bfcorr.channel.biasfwhm = PDproc.biasfwhm;
+% % % % % job_bfcorr.channel.write = [1 0]; % need the BiasField, obviously!
+% % % % % for ctis=1:length(job_bfcorr.tissue)
+% % % % %     job_bfcorr.tissue(ctis).native = [1 0]; % no need to write c* volumes
+% % % % %     job_bfcorr.tissue(ctis).warped = [0 0]; % no need to write wc* volumes
+% % % % % end
+
+% get eTPM path
+eTPM_path = hmri_get_defaults('TPM');
+
+eTPM_tmp = spm_file(eTPM_path,'path',mpm_params.calcpath);
+if ~exist(eTPM_tmp)
+    spm_copy(eTPM_path,eTPM_tmp)
+end
+
+% tpm_out_name = spm_file(eTPM_tmp,'suffix','_mask');
+ss_eTPM_c456 = spm_file(eTPM_tmp,'prefix','ss_','suffix','_c456');
+
+if ~exist(ss_eTPM_c456)
+
+    Y_eTPM =  spm_vol(eTPM_tmp);
+
+    V_c1 =  double(spm_read_vols(Y_eTPM(1)));
+    V_c2 =  double(spm_read_vols(Y_eTPM(2)));
+    V_c3 =  double(spm_read_vols(Y_eTPM(3)));
+% % % %     V_c4 =  double(spm_read_vols(Y_eTPM(4)));
+% % % %     V_c5 =  double(spm_read_vols(Y_eTPM(5)));
+% % % %     V_c6 =  double(spm_read_vols(Y_eTPM(6)));
+    
+% % % %     tpm_mask = (V_c1 + V_c2 + V_c3) > 0.1 ;
+% % % % 
+% % % %     % this part is from the SPM Fieldmap  (cite them)
+% % % %     nerode  = 2;
+% % % %     ndilate = 4;
+% % % %     thresh  = 0.5;  % 0.8 value used in ismrm abstract  
+% % % %     fwhm    = 5;    % 2;
+% % % % 
+% % % % 
+% % % %     tpm_mask=open_it(tpm_mask,nerode,ndilate); % Do opening to get rid of scalp
+% % % % 
+% % % %     % Calculate kernel in voxels:
+% % % %     vxs = sqrt(sum(Y_eTPM(1).mat(1:3,1:3).^2)); % reading mat from t1
+% % % %     fwhm = repmat(fwhm,1,3)./vxs;
+% % % %     tpm_mask=fill_it(tpm_mask,fwhm,thresh); % Do fill to fill holes
+% % % % 
+% % % %     OP=Y_eTPM(1);
+% % % %     OP.fname=tpm_out_name;%
+% % % %     OP.descrip=sprintf('Mask:erode=%d,dilate=%d,fwhm=%d,thresh=%1.1f',nerode,ndilate,fwhm,thresh);
+% % % %     spm_write_vol(OP,tpm_mask);
+% % % % 
+% % % % 
+% % % % 
+% % % %     ss_eTPM_c1 = spm_file(eTPM_tmp,'prefix','ss_','suffix','_c1');
+% % % %     if ~exist(ss_eTPM_c1)
+% % % % %         V_c1_tmp = V_c1.*(tpm_mask./tpm_mask);
+% % % %         V_c1_tmp = (V_c1.*tpm_mask) + (~tpm_mask.*1e-6);
+% % % %         clear OP
+% % % %         OP          = Y_eTPM(1);
+% % % %         OP.fname    = ss_eTPM_c1;%
+% % % %         OP.descrip  = sprintf('modified_tpm_c1');
+% % % %         spm_write_vol(OP,V_c1_tmp);
+% % % %         
+% % % %     end
+% % % %     
+% % % %     ss_eTPM_c2 = spm_file(eTPM_tmp,'prefix','ss_','suffix','_c2');
+% % % %     if ~exist(ss_eTPM_c2)
+% % % % %         V_c2_tmp = V_c2.*(tpm_mask./tpm_mask);
+% % % %         V_c2_tmp = (V_c2.*tpm_mask) + (~tpm_mask.*1e-6);
+% % % %         clear OP
+% % % %         OP          = Y_eTPM(1);
+% % % %         OP.fname    = ss_eTPM_c2;%
+% % % %         OP.descrip  = sprintf('modified_tpm_c2');
+% % % %         spm_write_vol(OP,V_c2_tmp);
+% % % %         
+% % % %     end
+% % % %     
+% % % %     ss_eTPM_c3 = spm_file(eTPM_tmp,'prefix','ss_','suffix','_c3');
+% % % %     if ~exist(ss_eTPM_c3)
+% % % %         
+% % % %         V_c3_tmp = (V_c3.*tpm_mask) + (~tpm_mask.*1e-6);
+% % % %         % mask and zeros to 10e^-6
+% % % % %         (V_c3_tmp==0)
+% % % %         clear OP
+% % % %         OP          = Y_eTPM(1);
+% % % %         OP.fname    = ss_eTPM_c3;%
+% % % %         OP.descrip  = sprintf('modified_tpm_c3');
+% % % %         spm_write_vol(OP,V_c3_tmp);
+% % % %         
+% % % %     end
+% % % %     
+% % % %     inv_tpm_mask = ~tpm_mask;
+    
+    ss_eTPM_c456 = spm_file(eTPM_tmp,'prefix','ss_','suffix','_c456');
+    
+    if ~exist(ss_eTPM_c456)
+        
+        
+% % % %         V_c456_tmp = 1-(V_c1_tmp + V_c2_tmp + V_c3_tmp) ;%((V_c1 + V_c2 + V_c3) .* inv_tpm_mask) + V_c4 + V_c5 + V_c6;
+        V_c456_tmp = 1-(V_c1 + V_c2 + V_c3) ;%((V_c1 + V_c2 + V_c3) .* inv_tpm_mask) + V_c4 + V_c5 + V_c6;
+        clear OP
+        OP          = Y_eTPM(1);
+        OP.fname    = ss_eTPM_c456;%
+        OP.descrip  = sprintf('modified_tpm_c456');
+        spm_write_vol(OP,V_c456_tmp);
+        
+    end
+
+end
+
+job_bfcorr.channel.vols = {seg_inputPD};
 job_bfcorr.channel.biasreg = PDproc.biasreg;
 job_bfcorr.channel.biasfwhm = PDproc.biasfwhm;
-job_bfcorr.channel.write = [1 0]; % need the BiasField, obviously!
-for ctis=1:length(job_bfcorr.tissue)
-    job_bfcorr.tissue(ctis).native = [1 0]; % no need to write c* volumes
-end
+job_bfcorr.channel.write = [1 0]; % need BiasField
+
+job_bfcorr.tissue(1).tpm = {[eTPM_path ',1']};
+job_bfcorr.tissue(1).ngaus = 2;
+job_bfcorr.tissue(1).native = [1 0];
+job_bfcorr.tissue(1).warped = [0 0];
+job_bfcorr.tissue(2).tpm = {[eTPM_path ',2']};
+job_bfcorr.tissue(2).ngaus = 2;
+job_bfcorr.tissue(2).native = [1 0];
+job_bfcorr.tissue(2).warped = [0 0];
+job_bfcorr.tissue(3).tpm = {[eTPM_path ',3']};
+job_bfcorr.tissue(3).ngaus = 2;
+job_bfcorr.tissue(3).native = [1 0];
+job_bfcorr.tissue(3).warped = [0 0];
+
+job_bfcorr.tissue(4).tpm = {ss_eTPM_c456};
+job_bfcorr.tissue(4).ngaus = 3;
+job_bfcorr.tissue(4).native = [1 0];
+job_bfcorr.tissue(4).warped = [0 0];
+
+% % % job_bfcorr.tissue(5).tpm = {[eTPM_path ',5']};
+% % % job_bfcorr.tissue(5).ngaus = 4;
+% % % job_bfcorr.tissue(5).native = [1 0];
+% % % job_bfcorr.tissue(5).warped = [0 0];
+% % % 
+% % % job_bfcorr.tissue(6).tpm = {[eTPM_path ',6']};
+% % % job_bfcorr.tissue(6).ngaus = 2;
+% % % job_bfcorr.tissue(6).native = [1 0];
+% % % job_bfcorr.tissue(6).warped = [0 0];
+
+job_bfcorr.warp.mrf = 1;
+job_bfcorr.warp.cleanup = 0;
+job_bfcorr.warp.reg = [0 0.001 0.5 0.05 0.2];
+job_bfcorr.warp.affreg = 'mni';
+job_bfcorr.warp.fwhm = 0;
+job_bfcorr.warp.samp = 1.5;
+job_bfcorr.warp.write = [1 1];
+job_bfcorr.warp.vox = NaN;
+job_bfcorr.warp.bb = [NaN NaN NaN
+                    NaN NaN NaN];
+                                          
+                                          
+                                          
 output_list = spm_preproc_run(job_bfcorr);
 
 % Bias field correction of A map.
@@ -1704,4 +1931,77 @@ for ii = 1:numel(N)
     p(ii).fa = get_metadata_val(P(ii,:),'FlipAngle');
 end
 
+end
+
+function ovol=open_it(vol,ne,nd)
+    % Do a morphological opening. This consists of an erosion, followed by 
+    % finding the largest connected component, followed by a dilation.
+
+    % Do an erosion then a connected components then a dilation 
+    % to get rid of stuff outside brain.
+    for i=1:ne
+       nvol=spm_erode(double(vol));
+       vol=nvol;
+    end
+    nvol=connect_it(vol);
+    vol=nvol;
+    for i=1:nd
+       nvol=spm_dilate(double(vol));
+       vol=nvol;
+    end
+
+    ovol=nvol;
+end
+
+
+function ovol=fill_it(vol,k,thresh)
+    % Do morpholigical fill. This consists of finding the largest connected 
+    % component and assuming that is outside of the head. All the other 
+    % components are set to 1 (in the mask). The result is then smoothed by k
+    % and thresholded by thresh.
+    ovol=vol;
+
+    % Need to find connected components of negative volume
+    vol=~vol;
+    [vol,NUM]=spm_bwlabel(double(vol),26); 
+
+    % Now get biggest component and assume this is outside head..
+    pnc=0;
+    maxnc=1;
+    for i=1:NUM
+       nc=size(find(vol==i),1);
+       if nc>pnc
+          maxnc=i;
+          pnc=nc;
+       end
+    end
+
+    % We know maxnc is largest cluster outside brain, so lets make all the
+    % others = 1.
+    for i=1:NUM
+        if i~=maxnc
+           ovol(vol==i)=1;
+        end
+    end
+
+    spm_smooth(ovol,ovol,k);
+    ovol=ovol>thresh;
+end
+
+function ovol=connect_it(vol)
+    % Find connected components and return the largest one.
+
+    [vol,NUM]=spm_bwlabel(double(vol),26); 
+
+    % Get biggest component
+    pnc=0;
+    maxnc=1;
+    for i=1:NUM
+       nc=size(find(vol==i),1);
+       if nc>pnc
+          maxnc=i;
+          pnc=nc;
+       end
+    end
+    ovol=(vol==maxnc);
 end
