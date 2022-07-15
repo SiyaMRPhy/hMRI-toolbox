@@ -858,16 +858,25 @@ if (mpm_params.QA.enable||(PDproc.calibr)) && (PDwidx && T1widx)
 % % %     output_list = spm_preproc_run(job_brainmask);
 % % %     fTPM = char(cat(1,output_list.tiss.c));
 
-% siya 
-% we need to get a good mask for computation of parameters. 
-% My idea is to use multi volume segment using T1w_TEzero and MTw_TEzero 
-% SNR should be higher for averaged Echos. 
-% Helms, G. and Dechent, P. (2009) ‘Increased SNR and reduced distortions by 
-% averaging multiple gradient echo signals in 3D FLASH imaging of the human 
-% brain at 3T’, Journal of magnetic resonance imaging: JMRI, 29(1), pp. 198–204.
-%
-% TEzero images have bias, high FWHM and smaple sampling region 
+    % siya 
+    % we need to get a good mask for computation of parameters. 
+    % My idea is to use multi volume segment using T1w_TEzero and MTw_TEzero 
+    % SNR should be higher for averaged Echos. 
+    % Helms, G. and Dechent, P. (2009) ‘Increased SNR and reduced distortions by 
+    % averaging multiple gradient echo signals in 3D FLASH imaging of the human 
+    % brain at 3T’, Journal of magnetic resonance imaging: JMRI, 29(1), pp. 198–204.
+    %
+    % TEzero images have bias, high FWHM and smaple sampling region 
+    % using matlab batch instead of calling spm_preproc_run(job_brainmask);
+    % the out folder is segTEzero . This is NOT DELETED unlike other
+    % processing folders. This files in folder as ref for the segmentation
+    % could be used for the spatial preprocessing 
     
+    % using matlab batch. prefer to save bacth file. The saved batch file help 
+    % in verfiy the files and parameters of individual subjects.
+    
+    
+    % this if condition is for is a fast testing (segmentation takes long time)
     if ~exist(spm_select('FPList',jobsubj.path.segTEzero,'^c1.*nii'),'file')
 
         % get the MTw_TEzero and T1w_TEzero 
@@ -887,15 +896,89 @@ if (mpm_params.QA.enable||(PDproc.calibr)) && (PDwidx && T1widx)
         end
 
         job_brainmask = hmri_get_defaults('segment');
-        job_brainmask.channel(2) = job_brainmask.channel(1);
-
-        job_brainmask.channel(1).vols{1} = MTw_TEzero;
-        job_brainmask.channel(2).vols{1} = T1w_TEzero;
-
-        output_list = spm_preproc_run(job_brainmask);
-
-        fTPM = char(cat(1,output_list.tiss.c));
         
+        % using matlab batch instead of calling spm_preproc_run(job_brainmask);
+        % the out folder is segTEzero . This is not deleted unlike other
+        % processing folders. This stays as ref for the segmentation 
+        
+        
+        clear matlabbatch;
+        matlabbatch{1}.spm.spatial.preproc.channel(1).vols = {MTw_TEzero};
+        matlabbatch{1}.spm.spatial.preproc.channel(1).biasreg = job_brainmask.channel.biasreg;
+        matlabbatch{1}.spm.spatial.preproc.channel(1).biasfwhm = job_brainmask.channel.biasfwhm;
+        matlabbatch{1}.spm.spatial.preproc.channel(1).write = job_brainmask.channel.write;
+        matlabbatch{1}.spm.spatial.preproc.channel(2).vols = {T1w_TEzero};
+        matlabbatch{1}.spm.spatial.preproc.channel(2).biasreg = job_brainmask.channel.biasreg;
+        matlabbatch{1}.spm.spatial.preproc.channel(2).biasfwhm = job_brainmask.channel.biasfwhm;
+        matlabbatch{1}.spm.spatial.preproc.channel(2).write = job_brainmask.channel.write;
+        matlabbatch{1}.spm.spatial.preproc.tissue(1).tpm = job_brainmask.tissue(1).tpm;
+        matlabbatch{1}.spm.spatial.preproc.tissue(1).ngaus = job_brainmask.tissue(1).ngaus;
+        matlabbatch{1}.spm.spatial.preproc.tissue(1).native = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(1).warped = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(2).tpm =  job_brainmask.tissue(2).tpm;
+        matlabbatch{1}.spm.spatial.preproc.tissue(2).ngaus = job_brainmask.tissue(2).ngaus;
+        matlabbatch{1}.spm.spatial.preproc.tissue(2).native = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(2).warped = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(3).tpm =  job_brainmask.tissue(3).tpm;
+        matlabbatch{1}.spm.spatial.preproc.tissue(3).ngaus = job_brainmask.tissue(3).ngaus;
+        matlabbatch{1}.spm.spatial.preproc.tissue(3).native = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(3).warped = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(4).tpm =  job_brainmask.tissue(4).tpm;
+        matlabbatch{1}.spm.spatial.preproc.tissue(4).ngaus = job_brainmask.tissue(4).ngaus;
+        matlabbatch{1}.spm.spatial.preproc.tissue(4).native = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(4).warped = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(5).tpm =  job_brainmask.tissue(5).tpm;
+        matlabbatch{1}.spm.spatial.preproc.tissue(5).ngaus = job_brainmask.tissue(5).ngaus;
+        matlabbatch{1}.spm.spatial.preproc.tissue(5).native = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(5).warped = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(6).tpm =  job_brainmask.tissue(6).tpm;
+        matlabbatch{1}.spm.spatial.preproc.tissue(6).ngaus = job_brainmask.tissue(6).ngaus;
+        matlabbatch{1}.spm.spatial.preproc.tissue(6).native = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.tissue(6).warped = [1 1];
+        matlabbatch{1}.spm.spatial.preproc.warp.mrf = job_brainmask.warp.mrf;
+        matlabbatch{1}.spm.spatial.preproc.warp.cleanup = job_brainmask.warp.cleanup;
+        matlabbatch{1}.spm.spatial.preproc.warp.reg = job_brainmask.warp.reg;
+        matlabbatch{1}.spm.spatial.preproc.warp.affreg = job_brainmask.warp.affreg;
+        matlabbatch{1}.spm.spatial.preproc.warp.fwhm = job_brainmask.warp.fwhm;
+        matlabbatch{1}.spm.spatial.preproc.warp.samp = job_brainmask.warp.samp;
+        matlabbatch{1}.spm.spatial.preproc.warp.write = job_brainmask.warp.write;
+        matlabbatch{1}.spm.spatial.preproc.warp.vox = NaN;
+        matlabbatch{1}.spm.spatial.preproc.warp.bb = [NaN NaN NaN
+                                                      NaN NaN NaN];
+
+
+
+        batch_file = spm_file(MTw_TEzero,'prefix','batch_segment_TEzero_MTwT1wCombi_','suffix','_job','ext','m');
+
+        [job_id, mod_job_idlist] = cfg_util('initjob',matlabbatch);
+        cfg_util('savejob', job_id, batch_file);
+        output_part = spm_jobman('run',matlabbatch);
+
+        clear matlabbatch;
+        
+        
+        % estimate the tissue volumes. use this for QC
+        
+        if ~exist(spm_file(MTw_TEzero,'suffix','_TIV','ext','txt'),'file')
+
+            clear matlabbatch;
+
+            matlabbatch{1}.spm.util.tvol.matfiles = {spm_file(MTw_TEzero,'suffix','_seg8','ext','mat')};
+            matlabbatch{1}.spm.util.tvol.tmax = 3;
+            matlabbatch{1}.spm.util.tvol.mask = {fullfile(spm('Dir'),'tpm','mask_ICV.nii')};
+            matlabbatch{1}.spm.util.tvol.outf = spm_file(MTw_TEzero,'suffix','_TIV','ext','txt');
+
+            batch_file = spm_file(MTw_TEzero,'prefix','batch_estimateTIV_','suffix','_job','ext','m');
+
+            [job_id, mod_job_idlist] = cfg_util('initjob',matlabbatch);
+            cfg_util('savejob', job_id, batch_file);
+            output_part = spm_jobman('run',matlabbatch);
+
+            clear matlabbatch;
+
+        end
+        fTPM = spm_select('FPList',jobsubj.path.segTEzero,'^c.*nii');
+   
     else
         fTPM = spm_select('FPList',jobsubj.path.segTEzero,'^c.*nii');
     end
@@ -1123,7 +1206,7 @@ WMmask(squeeze(TPMs(:,:,:,2))>=PDproc.WMMaskTh) = 1;
 V_maskedA = spm_vol(fA);
 V_maskedA.fname = fullfile(calcpath,['masked_' spm_str_manip(V_maskedA.fname,'t')]);
 % % maskedA = spm_read_vols(spm_vol(fA)).*WBmask; test siya
-maskedA = spm_read_vols(spm_vol(fA)).*WBmask  + (~WBmask .* 1e-6) ;
+maskedA = spm_read_vols(spm_vol(fA)).*WBmask  + (~WBmask .* 1e-6) ; % add very small value to the region outside mask
 maskedA(maskedA==Inf) = 0;
 maskedA(isnan(maskedA)) = 0;
 maskedA(maskedA==threshA) = 0;
@@ -1276,15 +1359,15 @@ end
 
 job_bfcorr.channel.vols = {seg_inputPD};
 job_bfcorr.channel.biasreg = PDproc.biasreg;
-job_bfcorr.channel.biasfwhm = PDproc.biasfwhm;
+job_bfcorr.channel.biasfwhm = 40 ;% PDproc.biasfwhm;
 job_bfcorr.channel.write = [1 0]; % need BiasField
 
 job_bfcorr.tissue(1).tpm = {[eTPM_path ',1']};
-job_bfcorr.tissue(1).ngaus = 2;
+job_bfcorr.tissue(1).ngaus = 1;
 job_bfcorr.tissue(1).native = [1 0];
 job_bfcorr.tissue(1).warped = [0 0];
 job_bfcorr.tissue(2).tpm = {[eTPM_path ',2']};
-job_bfcorr.tissue(2).ngaus = 2;
+job_bfcorr.tissue(2).ngaus = 1;
 job_bfcorr.tissue(2).native = [1 0];
 job_bfcorr.tissue(2).warped = [0 0];
 job_bfcorr.tissue(3).tpm = {[eTPM_path ',3']};
@@ -1312,7 +1395,7 @@ job_bfcorr.warp.cleanup = 0;
 job_bfcorr.warp.reg = [0 0.001 0.5 0.05 0.2];
 job_bfcorr.warp.affreg = 'mni';
 job_bfcorr.warp.fwhm = 0;
-job_bfcorr.warp.samp = 1.5;
+job_bfcorr.warp.samp = 1.2;
 job_bfcorr.warp.write = [1 1];
 job_bfcorr.warp.vox = NaN;
 job_bfcorr.warp.bb = [NaN NaN NaN
