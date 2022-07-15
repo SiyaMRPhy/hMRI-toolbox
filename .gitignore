@@ -3,3 +3,7 @@
 
 # ignore *.odt version of the manual (keep PDF only)
 *.odt
+icv_test/eTPM.nii
+icv_test/mask_ICV.nii
+icv_test/maskICV_eTPM.nii
+icv_test/ss_maskICV_eTPM.m
