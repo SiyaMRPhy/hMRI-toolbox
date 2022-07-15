@@ -955,9 +955,11 @@ if (mpm_params.QA.enable||(PDproc.calibr)) && (PDwidx && T1widx)
         output_part = spm_jobman('run',matlabbatch);
 
         clear matlabbatch;
+                
         
-        
-        % estimate the tissue volumes. use this for QC
+        %==================================================================
+        % estimate the tissue volumes. use this for QC - using ICV old 
+        %==================================================================
         
         if ~exist(spm_file(MTw_TEzero,'suffix','_TIV','ext','txt'),'file')
 
@@ -977,6 +979,34 @@ if (mpm_params.QA.enable||(PDproc.calibr)) && (PDwidx && T1widx)
             clear matlabbatch;
 
         end
+        %------------------------------------------------------------------
+        
+        %==================================================================
+        % estimate the tissue volumes. use this for QC - using ICV eTPM 
+        %==================================================================
+        
+        if ~exist(spm_file(MTw_TEzero,'suffix','_TIV_ICVeTPM','ext','txt'),'file')
+
+            eTPM_path = hmri_get_defaults('TPM');
+            maskICV = fullfile(spm_file(eTPM_path,'path'),'maskICV_eTPM.nii');
+            
+            clear matlabbatch;
+
+            matlabbatch{1}.spm.util.tvol.matfiles = {spm_file(MTw_TEzero,'suffix','_seg8','ext','mat')};
+            matlabbatch{1}.spm.util.tvol.tmax = 3;
+            matlabbatch{1}.spm.util.tvol.mask = {maskICV};
+            matlabbatch{1}.spm.util.tvol.outf = spm_file(MTw_TEzero,'suffix','_TIV_ICVeTPM','ext','txt');
+
+            batch_file = spm_file(MTw_TEzero,'prefix','batch_estimateTIV_ICVeTPM_','suffix','_job','ext','m');
+
+            [job_id, mod_job_idlist] = cfg_util('initjob',matlabbatch);
+            cfg_util('savejob', job_id, batch_file);
+            output_part = spm_jobman('run',matlabbatch);
+
+            clear matlabbatch;
+
+        end
+        %------------------------------------------------------------------
         fTPM = spm_select('FPList',jobsubj.path.segTEzero,'^c.*nii');
    
     else
