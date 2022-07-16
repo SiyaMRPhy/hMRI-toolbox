@@ -7,3 +7,8 @@ icv_test/eTPM.nii
 icv_test/mask_ICV.nii
 icv_test/maskICV_eTPM.nii
 icv_test/ss_maskICV_eTPM.m
+icv_test/ss_eTPM_c1.nii
+icv_test/ss_eTPM_c2.nii
+icv_test/ss_eTPM_c3.nii
+icv_test/ss_eTPM_c456.nii
+icv_test/ss_eTPM_masked.m
