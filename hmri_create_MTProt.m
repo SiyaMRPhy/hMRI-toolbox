@@ -819,7 +819,7 @@ if mpm_params.ACPCrealign
         Vsave = spm_vol(ACPC_images(i,:));
         Vsave.descrip = [Vsave.descrip ' - AC-PC realigned'];
         spm_write_vol(Vsave,spm_read_vols(spm_vol(ACPC_images(i,:))));
-    end;
+    end
     
     % Save transformation matrix
     spm_jsonwrite(fullfile(supplpath,'hMRI_map_creation_ACPCrealign_transformation_matrix.json'),R,struct('indent','\t'));
@@ -942,7 +942,7 @@ if (mpm_params.QA.enable||(PDproc.calibr)) && (PDwidx && T1widx)
         matlabbatch{1}.spm.spatial.preproc.warp.fwhm = job_brainmask.warp.fwhm;
         matlabbatch{1}.spm.spatial.preproc.warp.samp = job_brainmask.warp.samp;
         matlabbatch{1}.spm.spatial.preproc.warp.write = job_brainmask.warp.write;
-        matlabbatch{1}.spm.spatial.preproc.warp.vox = NaN;
+        matlabbatch{1}.spm.spatial.preproc.warp.vox = job_brainmask.warp.vox;
         matlabbatch{1}.spm.spatial.preproc.warp.bb = [NaN NaN NaN
                                                       NaN NaN NaN];
 
@@ -1226,7 +1226,7 @@ calcpath = mpm_params.calcpath;
 
 TPMs = spm_read_vols(spm_vol(fTPM));
 WBmask = zeros(size(squeeze(TPMs(:,:,:,1)))); % WB whole brain mask
-% WBmask(sum(cat(4,TPMs(:,:,:,1:2),TPMs(:,:,:,end)),4)>=PDproc.WBMaskTh) =  1;  % maksing in not proper 
+% WBmask(sum(cat(4,TPMs(:,:,:,1:2),TPMs(:,:,:,end)),4)>=PDproc.WBMaskTh) =  1;  % maksing is not proper 
 WBmask(TPMs(:,:,:,1)+TPMs(:,:,:,2)+TPMs(:,:,:,3) >= PDproc.WBMaskTh) = 1 ;% siya % add the c1 c2 c3 and threshold 
 
 WMmask=zeros(size(squeeze(TPMs(:,:,:,1))));
