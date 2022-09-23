@@ -86,6 +86,9 @@ rfsenspath = fullfile(outpath, 'RFsensCalc');
 if ~exist(rfsenspath,'dir'); mkdir(rfsenspath); end
 mpmpath = fullfile(outpath, 'MPMCalc');
 if ~exist(mpmpath,'dir'); mkdir(mpmpath); end
+% path for segment TEzero 
+segTEzero = fullfile(outpath, 'segment_TEzero');
+if ~exist(segTEzero,'dir'); mkdir(segTEzero); end
 
 % save all these paths in the job.subj structure
 job.subj.path.b1path = b1path;
@@ -94,6 +97,7 @@ job.subj.path.rfsenspath = rfsenspath;
 job.subj.path.mpmpath = mpmpath;
 job.subj.path.respath = respath;
 job.subj.path.supplpath = supplpath;
+job.subj.path.segTEzero = segTEzero;
 
 % save log file location
 job.subj.log.logfile = fullfile(supplpath, 'hMRI_map_creation_logfile.log');
