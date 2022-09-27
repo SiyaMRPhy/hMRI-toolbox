@@ -427,7 +427,6 @@ hmri_def.imperfectSpoilCorr.Unknown.tag = 'Unknown protocol. No spoiling correct
 % directory. 
 
 hmri_b1_standard_defaults;
-
 %==========================================================================
 % Maps processing parameters
 %==========================================================================
@@ -453,5 +452,30 @@ hmri_def.proc.w_native = [[1 1];[1 1];[1 1];[0 0];[0 0];[0 0]];
 hmri_def.proc.w_warped = [[1 1];[1 1];[1 1];[0 0];[0 0];[0 0]];
 % Number of Gaussians per tissue class
 hmri_def.proc.nGauss = [2 2 2 3 4 2]; % originally in SPM [1 1 2 3 4 2]
+
+%==========================================================================
+% New feature: generate error maps
+%==========================================================================
+% errormaps
+hmri_def.errormaps  = false;
+
+% lower bounds on R1, PD and MTsat to avoid dividing by small numbers
+% in parameter-wise SNR estimates of R1/dR1, PD/dPD and MTsat/dMTsat
+hmri_def.qMRI_maps_thresh.dR1 = 1e-4;
+hmri_def.qMRI_maps_thresh.dPD = 1e-2;
+hmri_def.qMRI_maps_thresh.dMT = 1e-4;
+
+% upper bounds on SNR maps dR1/R1, dPD/PD and dMTsat/MTsat
+hmri_def.qMRI_maps_thresh.SMR1= 1e3;
+hmri_def.qMRI_maps_thresh.SMPD= 1e3;
+hmri_def.qMRI_maps_thresh.SMMT= 1e3;
+
+% weighted combination - see Mohammadi et al., 2022 (bioRxiv) for details
+hmri_def.wcombparams.kt         = 10; % in percent
+hmri_def.wcombparams.res        = -4;
+hmri_def.wcombparams.smthk      = 0;
+hmri_def.wcombparams.dim        = 3;
+hmri_def.wcombparams.dummy_am   = true;
+hmri_def.wcombparams.dummy_error= true;
 
 end
