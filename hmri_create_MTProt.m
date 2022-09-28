@@ -1326,13 +1326,13 @@ maskedA = maskedA .* ( double(maskedA > 1e-7) ./ double(maskedA > 1e-7) ); % the
 
 spm_write_vol(V_maskedA,maskedA);
 
-<<<<<<< HEAD
+
 % add small values in the zero vals (regions outside masked regions) % siya
 % SPM segemenataion expects a non-zero number for tissue values
 
 seg_inputPD = V_maskedA.fname;
 
-=======
+
 if(mpm_params.errormaps)
     outbasename = spm_file(mpm_params.input(mpm_params.PDwidx).fnam(1,:),'basename'); % for all output files
     
@@ -1340,7 +1340,7 @@ if(mpm_params.errormaps)
     PPD_error   = fullfile(calcpath,[outbasename '_' mpm_params.output(mpm_params.qPD).suffix 'param_error.nii']);
     PDerror     = spm_read_vols(spm_vol(PPD_error));
 end
->>>>>>> 3693bd872048e28911a2c1d106eb1089c785dd6b
+
 % Bias-field correction of masked A map
 % use unified segmentation with uniform defaults across the toolbox:
 % % % % % job_bfcorr = hmri_get_defaults('segment');
