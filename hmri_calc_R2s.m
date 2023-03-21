@@ -150,10 +150,13 @@ switch lower(method)
         y0=exp(D*OLS(logy,D));
         
         % Loop over voxels
-        parfor n=1:size(y,2)
+%         parpool(5) % this should be n_par 
+%         parfor n=1:size(y,2)
+        for n=1:size(y,2)
             beta(:,n)=WLS(logy(:,n),D,y0(:,n),niter);
         end
         beta(2:end,:)=exp(beta(2:end,:));
+%         delete(gcp('nocreate'));
         
     case {'nlls_ols','nlls_wls1','nlls_wls2','nlls_wls3'}
         % Check for NLLS case, where specification of the log-linear
@@ -179,9 +182,12 @@ switch lower(method)
         expDecay=@(x,D) (D(:,2:end)*x(2:end)).*exp(x(1)*D(:,1));
         
         % Loop over voxels
-        parfor n=1:size(y,2)
+%         parpool(5)
+%         parfor n=1:size(y,2)
+        for n=1:size(y,2)
             beta(:,n)=lsqcurvefit(@(x,D)expDecay(x,D),beta0(:,n),D,y(:,n),[],[],opt);
         end
+%         delete(gcp('nocreate'));
     otherwise
         error(['method ' method ' not recognised'])
 end
@@ -223,9 +229,9 @@ end
 
 %% Fitting methods
 function beta=OLS(y,D)
-% allows for vectorized voxel processing
+    % allows for vectorized voxel processing
 
-beta=(D'*D)\(D'*y);
+    beta=(D'*D)\(D'*y);
 
 end
 
