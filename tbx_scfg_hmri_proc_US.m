@@ -1,7 +1,7 @@
 function proc_us = tbx_scfg_hmri_proc_US
 % Configuration file for the segmentation part of the processing modules of
 % the "histological MRI" (hMRI) toolbox.
-% -> Apply "unifies segementation" (US) on series of images.
+% -> Apply "unified segmentation" (US) on series of images.
 %_______________________________________________________________________
 % Copyright (C) 2017 Cyclotron Research Centre
 
@@ -77,6 +77,11 @@ output.val     = {indir};
 % ---------------------------------------------------------------------
 % get the prproc8 config object
 preproc8 = spm_cfg_preproc8;
+% implement Guillaume's fix 
+% for compatibility with spm/spm (spm-development-version)
+if isa(preproc8.val,'function_handle')
+    preproc8.val = feval(preproc8.val);
+end
 % % set the bias cutoff and regularisation to 'no bias' 'no reg' correction
 % preproc8 = cfg_set_val(preproc8, 'data', 'channel', 'biasfwhm', Inf); 
 % preproc8 = cfg_set_val(preproc8, 'data', 'channel', 'biasreg', 0); 
